@@ -1,16 +1,15 @@
-The chip detection is still showing workload chips when it should show kW chips. The issue is the message contains the word "workload" even when asking about power, so workload chips always win.
+The chip detection priority is still wrong. The issue is acknowledgment lines contain location/kW keywords from the previous answer, overriding the actual question being asked.
 
-Fix this by changing the order of priority — check for the MOST SPECIFIC keywords first:
+Completely change the approach. Instead of keyword matching on the message text, track which question number the agent is on and show chips based on that:
 
-Check in this exact order:
-1. "kW" OR "kilowatt" OR "footprint" OR "power density" OR "per rack" → show kW chips
-2. "compliance" OR "regulatory" OR "ISO" OR "G-Cloud" OR "Cyber Essentials" OR "OFFICIAL-SENSITIVE" → show compliance chips  
-3. "location" OR "facility" OR "Bothwell" OR "Lanarkshire" OR "DV1" OR "DV2" → show location chips
-4. "timeline" OR "budget" OR "monthly" OR "deployment date" → show timeline chips
-5. "workload" OR "planning to run" OR "planning to host" → show workload chips (LAST, lowest priority)
+- Question 1 (workload): show workload chips
+- Question 2 (power — only for HPC/AI): show kW chips  
+- Question 3 (compliance): show compliance chips
+- Question 4 (location): show location chips
+- Question 5 (timeline/budget): show timeline chips
 
-The kW check must come before the workload check. Stop checking after the first match.
+Track question number in the useQualification hook as a simple counter that increments each time the agent sends a message after the user has replied. Start at 1 after the first user message.
 
-The chip detection is reading the whole message including the agent's acknowledgment of the previous answer. Fix it by only checking the LAST paragraph or LAST sentence of the agent message for keyword matching — not the full message text.
+This is more reliable than keyword matching because it doesn't get confused by acknowledgment text that references previous answers.
 
-Split the message by "\n\n" (double newline) and only run keyword detection on the last non-empty paragraph. This way "15kW is well within our capabilities" won't trigger kW chips when the actual question being asked is about compliance.
+at the end give a bulletpoint sumamry before it generates the brief and when it is get rid of the typing animation and only keep the stay tuned animation

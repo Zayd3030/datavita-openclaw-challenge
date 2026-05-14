@@ -14,30 +14,18 @@ const STAGE_LABELS = {
   [QUALIFICATION_STAGES.COMPLETE]: 'Complete',
 }
 
-function getSuggestions(content) {
-  // Check the last 3 paragraphs — enough to catch the actual question while
-  // excluding older acknowledgement lines from a previous turn.
-  const paragraphs = content.split('\n\n').map(p => p.trim()).filter(Boolean)
-  const window = paragraphs.slice(-3).join(' ')
-  const lower = window.toLowerCase()
+const WORKLOAD_CHIPS = ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
+const KW_CHIPS = ['Under 10kW', '10-50kW', '50-100kW', '100kW+']
+const COMPLIANCE_CHIPS = ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'OFFICIAL-SENSITIVE', 'None Required']
+const LOCATION_CHIPS = ['Glasgow City Centre (DV2)', 'Lanarkshire (DV1)', 'Flexible']
+const TIMELINE_CHIPS = ['3 months / Under £5k', '6 months / £5–15k', '12 months+ / £15k+', 'Flexible Timeline']
 
-  // Most-specific checks first so power keywords beat "workload" when both
-  // appear in the same window.
-  if (lower.includes('kw') || lower.includes('kilowatt') || lower.includes('power requirements') ||
-      lower.includes('power footprint') || lower.includes('power density') ||
-      lower.includes('per rack') || lower.includes('footprint') || lower.includes('ballpark'))
-    return ['Under 10kW', '10-50kW', '50-100kW', '100kW+']
-  if (lower.includes('compliance') || lower.includes('regulatory') || lower.includes('iso') ||
-      lower.includes('g-cloud') || lower.includes('cyber essentials') || lower.includes('official-sensitive'))
-    return ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'OFFICIAL-SENSITIVE', 'None Required']
-  if (lower.includes('location') || lower.includes('facility') || lower.includes('bothwell') ||
-      lower.includes('lanarkshire') || lower.includes('dv1') || lower.includes('dv2'))
-    return ['Glasgow City Centre (DV2)', 'Lanarkshire (DV1)', 'Flexible']
-  if (lower.includes('timeline') || lower.includes('budget') || lower.includes('monthly') ||
-      lower.includes('deployment date'))
-    return ['3 months / Under £5k', '6 months / £5–15k', '12 months+ / £15k+', 'Flexible Timeline']
-  if (lower.includes('workload') || lower.includes('planning to run') || lower.includes('planning to host'))
-    return ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
+function getChipsForQuestion(questionNumber, isHpcWorkload) {
+  if (questionNumber === 1) return WORKLOAD_CHIPS
+  if (questionNumber === 2) return isHpcWorkload ? KW_CHIPS : COMPLIANCE_CHIPS
+  if (questionNumber === 3) return isHpcWorkload ? COMPLIANCE_CHIPS : LOCATION_CHIPS
+  if (questionNumber === 4) return isHpcWorkload ? LOCATION_CHIPS : TIMELINE_CHIPS
+  if (questionNumber === 5) return isHpcWorkload ? TIMELINE_CHIPS : []
   return []
 }
 
@@ -52,7 +40,7 @@ export default function ChatInterface() {
   const [timestampedMessages, setTimestampedMessages] = useState(() => [makeGreeting()])
   const messagesEndRef = useRef(null)
 
-  const { messages, stage, isLoading, brief, qualificationData, error, sendMessage, reset } =
+  const { messages, stage, isLoading, brief, qualificationData, error, questionNumber, isHpcWorkload, sendMessage, reset } =
     useQualification()
 
   // Sync hook messages into timestampedMessages.
@@ -166,12 +154,12 @@ export default function ChatInterface() {
                 role={msg.role}
                 content={msg.content}
                 timestamp={msg.timestamp}
-                suggestions={idx === chipsIdx ? getSuggestions(msg.content) : undefined}
+                suggestions={idx === chipsIdx ? getChipsForQuestion(questionNumber, isHpcWorkload) : undefined}
                 onSuggestionClick={sendMessage}
               />
             ))}
 
-            {isLoading && <TypingIndicator />}
+            {isLoading && !isGenerating && <TypingIndicator />}
 
             {isGenerating && (
               <div className="flex items-start gap-3 mb-4">
