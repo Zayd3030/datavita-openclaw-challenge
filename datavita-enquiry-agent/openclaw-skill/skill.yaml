@@ -1,42 +1,48 @@
 name: datavita-enquiry-agent
-version: 1.0.0
-description: Qualifies inbound co-location enquiries for DataVita and generates structured sales briefs with live market intelligence.
+version: 2.0.0
+description: Routes inbound data centre enquiries through the live DataVita Enquiry Intelligence API and returns responses via Telegram.
 author: Zayd Hussain
 
 triggers:
   - keyword: "datavita enquiry"
-  - keyword: "qualify data centre"
-  - keyword: "colocation enquiry"
+  - keyword: "data centre enquiry"
+  - keyword: "colocation"
+
+env:
+  - DATAVITA_API_URL
+
+session:
+  maintain_history: true
+  history_key: messages
 
 steps:
   - name: qualify
-    type: conversation
-    prompt_file: prompts/qualify.md
-    collect:
-      - workload_type
-      - power_kw
-      - compliance_needs
-      - location_pref
-      - budget_range
-      - timeline
-
-  - name: fetch_intelligence
-    type: web_search
-    query: "DataVita Scotland AI Growth Zone CoreWeave {workload_type}"
-
-  - name: generate_brief
-    type: llm
-    prompt_file: prompts/brief.md
-    inputs:
-      - qualification_data
-      - intelligence_context
-
-  - name: log_enquiry
     type: http
-    url: "{SUPABASE_URL}/rest/v1/enquiries"
+    url: "{DATAVITA_API_URL}/api/qualify"
     method: POST
     headers:
-      apikey: "{SUPABASE_SERVICE_ROLE_KEY}"
-      Authorization: "Bearer {SUPABASE_SERVICE_ROLE_KEY}"
       Content-Type: "application/json"
-    body: "{qualification_data}"
+    body:
+      messages: "{session.messages}"
+      stage: "questioning"
+    reply: "{response.message}"
+    loop:
+      until: "{response.isComplete}"
+
+  - name: generate_brief
+    type: http
+    url: "{DATAVITA_API_URL}/api/qualify"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body:
+      messages: "{session.messages}"
+      stage: "generating"
+      generateBrief: true
+      qualificationData: "{response.qualificationData}"
+      intelligenceContext: "{response.intelligenceContext}"
+      priority: "{response.priority}"
+    reply: |
+      Your DataVita sales brief is ready.
+
+      {response.brief}
