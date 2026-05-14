@@ -13,6 +13,6 @@ When agent message contains "location" OR "facility" OR "Glasgow" OR "Lanarkshir
 → show ["Glasgow City Centre (DV2)", "Lanarkshire (DV1)", "Flexible"]
 
 When agent message contains "timeline" OR "budget" OR "when" OR "monthly":
-→ show ["3 months / ", "6 months", "12 months+", "Flexible Timeline"] and also give options for budget next to it for example "3 momths / under £5k"
+→ show ["3 months / ", "6 months", "12 months+", "Flexible Timeline"] and also give options for budget next to it for example "3 momths / under £5k etc"
 
 Make all keyword checks case-insensitive. Show chips for the most recent agent message only. If no keywords match, show no chips. Do not show chips after the user has already replied to that message.
