@@ -15,17 +15,27 @@ const STAGE_LABELS = {
 }
 
 function getSuggestions(content) {
-  const lower = content.toLowerCase()
-  if (lower.includes('workload') || lower.includes('running') || lower.includes('planning to host'))
-    return ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
-  if (lower.includes('power') || lower.includes('kw') || lower.includes('kilowatt') || lower.includes('footprint'))
+  // Only inspect the last non-empty paragraph so acknowledgements of
+  // previous answers don't bleed into the next question's chip set.
+  const lastParagraph = content
+    .split('\n\n')
+    .map(p => p.trim())
+    .filter(Boolean)
+    .at(-1) ?? content
+  const lower = lastParagraph.toLowerCase()
+
+  // Most-specific checks first so "power" beats "workload" when the agent
+  // asks about kW inside a message that also contains the word "workload".
+  if (lower.includes('kw') || lower.includes('kilowatt') || lower.includes('footprint') || lower.includes('power density') || lower.includes('per rack'))
     return ['Under 10kW', '10-50kW', '50-100kW', '100kW+']
-  if (lower.includes('compliance') || lower.includes('regulatory') || lower.includes('iso') || lower.includes('g-cloud') || lower.includes('cyber essentials'))
+  if (lower.includes('compliance') || lower.includes('regulatory') || lower.includes('iso') || lower.includes('g-cloud') || lower.includes('cyber essentials') || lower.includes('official-sensitive'))
     return ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'OFFICIAL-SENSITIVE', 'None Required']
-  if (lower.includes('location') || lower.includes('facility') || lower.includes('glasgow') || lower.includes('lanarkshire'))
+  if (lower.includes('location') || lower.includes('facility') || lower.includes('bothwell') || lower.includes('lanarkshire') || lower.includes('dv1') || lower.includes('dv2'))
     return ['Glasgow City Centre (DV2)', 'Lanarkshire (DV1)', 'Flexible']
-  if (lower.includes('timeline') || lower.includes('budget') || lower.includes('when') || lower.includes('monthly'))
+  if (lower.includes('timeline') || lower.includes('budget') || lower.includes('monthly') || lower.includes('deployment date'))
     return ['3 months / Under £5k', '6 months / £5–15k', '12 months+ / £15k+', 'Flexible Timeline']
+  if (lower.includes('workload') || lower.includes('planning to run') || lower.includes('planning to host'))
+    return ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
   return []
 }
 
