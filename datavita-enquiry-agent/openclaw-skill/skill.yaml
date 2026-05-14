@@ -1,0 +1,42 @@
+name: datavita-enquiry-agent
+version: 1.0.0
+description: Qualifies inbound co-location enquiries for DataVita and generates structured sales briefs with live market intelligence.
+author: Zayd Hussain
+
+triggers:
+  - keyword: "datavita enquiry"
+  - keyword: "qualify data centre"
+  - keyword: "colocation enquiry"
+
+steps:
+  - name: qualify
+    type: conversation
+    prompt_file: prompts/qualify.md
+    collect:
+      - workload_type
+      - power_kw
+      - compliance_needs
+      - location_pref
+      - budget_range
+      - timeline
+
+  - name: fetch_intelligence
+    type: web_search
+    query: "DataVita Scotland AI Growth Zone CoreWeave {workload_type}"
+
+  - name: generate_brief
+    type: llm
+    prompt_file: prompts/brief.md
+    inputs:
+      - qualification_data
+      - intelligence_context
+
+  - name: log_enquiry
+    type: http
+    url: "{SUPABASE_URL}/rest/v1/enquiries"
+    method: POST
+    headers:
+      apikey: "{SUPABASE_SERVICE_ROLE_KEY}"
+      Authorization: "Bearer {SUPABASE_SERVICE_ROLE_KEY}"
+      Content-Type: "application/json"
+    body: "{qualification_data}"
