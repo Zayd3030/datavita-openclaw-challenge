@@ -1,3 +1,7 @@
+export const GREETING_TEXT = `Welcome to DataVita Enquiry Intelligence. I'm here to help qualify your data centre requirements and match you with the right DataVita service.
+
+To get started, could you share your name, company name, and best contact email?`
+
 export const SYSTEM_PROMPT = `You are the DataVita Enquiry Intelligence Agent — a specialist AI assistant that qualifies inbound co-location and data centre enquiries for DataVita, Scotland's leading data centre provider.
 
 DataVita operates:
@@ -15,18 +19,18 @@ DataVita Services:
 5. Design & Build — Greenfield, custom build, bespoke data centre design
 
 Your job:
-- Greet the prospect warmly and professionally
-- Ask exactly 5 qualifying questions, one at a time, in a natural conversational flow
+- The prospect has already been greeted and asked for their name, company, and email — they will provide this in their first message
+- Continue the qualification by asking the remaining questions one at a time in a natural conversational flow
 - Never ask multiple questions at once
-- After question 5, confirm you have everything you need
-- Then call the generate_brief function
 
-Qualifying questions to cover (adapt phrasing naturally):
+Qualifying questions to cover in order (adapt phrasing naturally):
 1. What type of workload will you be running? (AI/ML training, standard enterprise, government/regulated, web/app hosting, other)
-2. What are your power requirements? (kW per rack, or total footprint estimate)
+2. CONDITIONAL power question — ONLY ask about power requirements (kW per rack or total footprint) if the prospect has indicated AI/ML training, HPC, GPU, or compute-intensive workloads. For Government/Public Sector, Standard Enterprise, and Web/App Hosting, skip this question entirely and go directly to compliance. Never ask about power if the user has already indicated a non-HPC workload type.
 3. Any specific compliance or regulatory requirements? (ISO 27001, Cyber Essentials Plus, G-Cloud, OFFICIAL-SENSITIVE, none)
 4. Location preference? (Glasgow city centre, Central Scotland/Lanarkshire, flexible)
 5. What's your rough timeline and indicative monthly budget?
+
+After all questions are answered, thank the prospect warmly, confirm you have everything needed, and tell them a personalised sales brief is being prepared for the DataVita team. Include the word "brief" in this confirmation message.
 
 Tone: Professional, knowledgeable, efficient. You represent Scotland's most advanced data centre provider. Be confident, not salesy.`;
 
@@ -57,6 +61,32 @@ export function extractQualificationData(messages) {
 
   const lowerConv = conversation.toLowerCase();
 
+  // Email
+  const emailMatch = conversation.match(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/);
+  if (emailMatch) data.email = emailMatch[0];
+
+  // Contact name and company from first user message
+  const userMessages = messages.filter(m => m.role === 'user');
+  if (userMessages.length > 0) {
+    const first = userMessages[0].content;
+    const namePatterns = [
+      /(?:I'm|I am|my name is|name's)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
+      /^([A-Z][a-z]+\s+[A-Z][a-z]+)/,
+    ];
+    for (const pattern of namePatterns) {
+      const m = first.match(pattern);
+      if (m) { data.contact_name = m[1].trim(); break; }
+    }
+    const companyPatterns = [
+      /(?:from|at|with|representing)\s+([A-Z][A-Za-z0-9\s&.]+?)(?:\.|,|\s+and\s|\s+–|\s+-|$)/i,
+    ];
+    for (const pattern of companyPatterns) {
+      const m = first.match(pattern);
+      if (m) { data.company_name = m[1].trim(); break; }
+    }
+  }
+
+  // Workload type
   if (lowerConv.includes('ai') || lowerConv.includes('ml') || lowerConv.includes('machine learning') ||
       lowerConv.includes('gpu') || lowerConv.includes('training') || lowerConv.includes('hpc')) {
     data.workload_type = 'hpc_ai';
@@ -72,11 +102,11 @@ export function extractQualificationData(messages) {
     data.workload_type = 'greenfield';
   }
 
+  // Power (only meaningful for HPC/AI)
   const powerMatch = conversation.match(/(\d+)\s*kw/i);
-  if (powerMatch) {
-    data.power_kw = parseFloat(powerMatch[1]);
-  }
+  if (powerMatch) data.power_kw = parseFloat(powerMatch[1]);
 
+  // Compliance
   const complianceMap = {
     'iso 27001': 'iso27001',
     'iso27001': 'iso27001',
@@ -87,13 +117,13 @@ export function extractQualificationData(messages) {
     'official sensitive': 'official_sensitive',
     'official-sensitive': 'official_sensitive',
   };
-
   for (const [phrase, code] of Object.entries(complianceMap)) {
     if (lowerConv.includes(phrase) && !data.compliance_needs.includes(code)) {
       data.compliance_needs.push(code);
     }
   }
 
+  // Location
   if (lowerConv.includes('glasgow') || lowerConv.includes('city centre') ||
       lowerConv.includes('city center')) {
     data.location_pref = 'glasgow_city';
@@ -102,11 +132,11 @@ export function extractQualificationData(messages) {
     data.location_pref = 'lanarkshire';
   }
 
+  // Budget
   const budgetMatch = conversation.match(/£([\d,]+)\s*(?:per\s+month|\/month|pm|monthly)?/i);
-  if (budgetMatch) {
-    data.budget_monthly = budgetMatch[0];
-  }
+  if (budgetMatch) data.budget_monthly = budgetMatch[0];
 
+  // Timeline
   const timelinePatterns = [/(\d+)\s*months?/i, /q[1-4]\s*\d{4}/i, /immediately|asap|urgent/i, /\d{4}/];
   for (const pattern of timelinePatterns) {
     const m = conversation.match(pattern);

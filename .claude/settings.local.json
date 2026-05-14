@@ -4,7 +4,8 @@
       "Bash(npm create *)",
       "Bash(npm install *)",
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Zayd\\\\Visual Studio Code Projects\\\\dataclaw\\\\\" | Select-Object Name; \"---\"; Get-ChildItem \"C:\\\\Users\\\\Zayd\\\\Visual Studio Code Projects\\\\dataclaw\\\\datavita-enquiry-agent\" -Recurse -Depth 2 | Select-Object FullName)",
-      "PowerShell(Move-Item *)"
+      "PowerShell(Move-Item *)",
+      "PowerShell(New-Item *)"
     ]
   }
 }

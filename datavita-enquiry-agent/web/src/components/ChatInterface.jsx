@@ -4,7 +4,15 @@ import MessageBubble from './MessageBubble.jsx'
 import TypingIndicator from './TypingIndicator.jsx'
 import BriefOutput from './BriefOutput.jsx'
 import { useQualification } from '../hooks/useQualification.js'
-import { QUALIFICATION_STAGES } from '../lib/agent.js'
+import { QUALIFICATION_STAGES, GREETING_TEXT } from '../lib/agent.js'
+
+const STAGE_LABELS = {
+  [QUALIFICATION_STAGES.GREETING]: 'Ready',
+  [QUALIFICATION_STAGES.QUESTIONING]: 'Qualifying',
+  [QUALIFICATION_STAGES.CONFIRMING]: 'Confirming',
+  [QUALIFICATION_STAGES.GENERATING]: 'Generating Brief',
+  [QUALIFICATION_STAGES.COMPLETE]: 'Complete',
+}
 
 function getSuggestions(content) {
   const lower = content.toLowerCase()
@@ -21,30 +29,29 @@ function getSuggestions(content) {
   return []
 }
 
-const STAGE_LABELS = {
-  [QUALIFICATION_STAGES.GREETING]: 'Ready',
-  [QUALIFICATION_STAGES.QUESTIONING]: 'Qualifying',
-  [QUALIFICATION_STAGES.CONFIRMING]: 'Confirming',
-  [QUALIFICATION_STAGES.GENERATING]: 'Generating Brief',
-  [QUALIFICATION_STAGES.COMPLETE]: 'Complete',
+function makeGreeting() {
+  return { role: 'assistant', content: GREETING_TEXT, timestamp: Date.now() }
 }
 
 export default function ChatInterface() {
   const [input, setInput] = useState('')
   const [showBrief, setShowBrief] = useState(false)
-  const [timestampedMessages, setTimestampedMessages] = useState([])
+  // Greeting is hardcoded — no API call needed, instant display
+  const [timestampedMessages, setTimestampedMessages] = useState(() => [makeGreeting()])
   const messagesEndRef = useRef(null)
-  const hasInitialized = useRef(false)
 
   const { messages, stage, isLoading, brief, qualificationData, error, sendMessage, reset } =
     useQualification()
 
+  // Sync hook messages into timestampedMessages.
+  // Offset by 1 because timestampedMessages[0] is the hardcoded greeting
+  // which is not in the hook's messages array.
   useEffect(() => {
-    if (messages.length > timestampedMessages.length) {
-      const newMessages = messages.slice(timestampedMessages.length).map(m => ({
-        ...m,
-        timestamp: Date.now(),
-      }))
+    const offset = 1
+    if (messages.length > timestampedMessages.length - offset) {
+      const newMessages = messages
+        .slice(timestampedMessages.length - offset)
+        .map(m => ({ ...m, timestamp: Date.now() }))
       setTimestampedMessages(prev => [...prev, ...newMessages])
     }
   }, [messages])
@@ -54,36 +61,10 @@ export default function ChatInterface() {
   }, [timestampedMessages, isLoading])
 
   useEffect(() => {
-    if (!hasInitialized.current) {
-      hasInitialized.current = true
-      handleGreeting()
-    }
-  }, [])
-
-  useEffect(() => {
     if (stage === QUALIFICATION_STAGES.COMPLETE && brief) {
       setShowBrief(true)
     }
   }, [stage, brief])
-
-  const handleGreeting = async () => {
-    try {
-      const response = await fetch('/api/qualify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [], stage: 'greeting' }),
-      })
-      if (!response.ok) return
-      const { message } = await response.json()
-      setTimestampedMessages([{ role: 'assistant', content: message, timestamp: Date.now() }])
-    } catch {
-      setTimestampedMessages([{
-        role: 'assistant',
-        content: "Welcome to DataVita Enquiry Intelligence. I'm here to help qualify your data centre requirements and match you with the right DataVita service. Could you start by telling me your name, company, and what brings you to DataVita today?",
-        timestamp: Date.now(),
-      }])
-    }
-  }
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
@@ -101,19 +82,13 @@ export default function ChatInterface() {
 
   const handleReset = () => {
     reset()
-    setTimestampedMessages([])
+    setTimestampedMessages([makeGreeting()])
     setShowBrief(false)
-    hasInitialized.current = false
-    setTimeout(() => {
-      hasInitialized.current = true
-      handleGreeting()
-    }, 50)
   }
 
   const isGenerating = stage === QUALIFICATION_STAGES.GENERATING
   const isComplete = stage === QUALIFICATION_STAGES.COMPLETE
 
-  // Index of the last assistant message, but only if no user message has followed it
   const lastAssistantIdx = timestampedMessages.reduce(
     (last, msg, idx) => msg.role === 'assistant' ? idx : last, -1
   )
@@ -124,22 +99,23 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col h-screen bg-dv-bg overflow-hidden">
-      <header className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800/80 bg-dv-surface/50 backdrop-blur-sm flex-shrink-0 no-print">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+      {/* Header */}
+      <header className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-slate-800/80 bg-dv-surface/50 backdrop-blur-sm flex-shrink-0 no-print">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <div className="w-2 h-2 rounded-full bg-dv-green animate-pulse" />
-            <span className="font-mono-dv font-bold text-dv-green text-lg tracking-tight">
+            <span className="font-mono-dv font-bold text-dv-green text-base sm:text-lg tracking-tight">
               DataVita
             </span>
           </div>
-          <span className="text-slate-600">|</span>
-          <span className="text-slate-400 text-sm font-light tracking-wide">
+          <span className="text-slate-600 hidden sm:block">|</span>
+          <span className="text-slate-400 text-xs sm:text-sm font-light tracking-wide truncate hidden sm:block">
             Enquiry Intelligence Agent
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1.5">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div className="hidden md:flex items-center gap-1.5">
             <Zap size={12} className={isComplete ? 'text-dv-green' : 'text-slate-500'} />
             <span className="text-xs font-mono-dv text-slate-500">
               {STAGE_LABELS[stage] || 'Ready'}
@@ -149,9 +125,10 @@ export default function ChatInterface() {
           {isComplete && brief && (
             <button
               onClick={() => setShowBrief(v => !v)}
-              className="hidden sm:flex items-center gap-1.5 text-xs font-mono-dv text-dv-green border border-dv-green/30 bg-dv-green/10 hover:bg-dv-green/20 px-3 py-1.5 rounded-full transition-colors"
+              className="flex items-center gap-1.5 text-xs font-mono-dv text-dv-green border border-dv-green/30 bg-dv-green/10 hover:bg-dv-green/20 px-2.5 sm:px-3 py-1.5 rounded-full transition-colors"
             >
-              {showBrief ? 'Hide Brief' : 'View Brief'}
+              <span className="hidden sm:inline">{showBrief ? 'Hide Brief' : 'View Brief'}</span>
+              <span className="sm:hidden">Brief</span>
               <ChevronRight size={12} className={showBrief ? 'rotate-180 transition-transform' : 'transition-transform'} />
             </button>
           )}
@@ -166,9 +143,11 @@ export default function ChatInterface() {
         </div>
       </header>
 
+      {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Chat panel */}
         <div className={`flex flex-col ${showBrief && brief ? 'w-full lg:w-[58%]' : 'w-full'} transition-all duration-300 min-w-0`}>
-          <div className="flex-1 overflow-y-auto px-4 pt-5 pb-2">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 pt-4 sm:pt-5 pb-2">
             {timestampedMessages.map((msg, idx) => (
               <MessageBubble
                 key={idx}
@@ -188,11 +167,25 @@ export default function ChatInterface() {
               </div>
             )}
 
+            {/* Prominent reset button after completion */}
+            {isComplete && !isLoading && (
+              <div className="flex justify-center my-5">
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-2 text-sm font-mono-dv text-dv-bg bg-dv-green hover:bg-emerald-400 px-5 py-2.5 rounded-xl transition-colors shadow-lg shadow-dv-green/20"
+                >
+                  <RefreshCw size={14} />
+                  Start New Enquiry
+                </button>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Mobile brief toggle */}
           {isComplete && brief && (
-            <div className="lg:hidden px-4 pb-2 no-print">
+            <div className="lg:hidden px-3 sm:px-4 pb-2 no-print">
               <button
                 onClick={() => setShowBrief(v => !v)}
                 className="w-full flex items-center justify-center gap-2 text-xs font-mono-dv text-dv-green border border-dv-green/30 bg-dv-green/10 hover:bg-dv-green/20 py-2.5 rounded-xl transition-colors"
@@ -203,16 +196,17 @@ export default function ChatInterface() {
             </div>
           )}
 
-          <div className="px-4 pb-4 pt-2 flex-shrink-0 no-print">
-            <div className="flex items-end gap-2 bg-dv-surface border border-slate-800 rounded-2xl px-4 py-3 focus-within:border-slate-600 transition-colors">
+          {/* Input area */}
+          <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 flex-shrink-0 no-print">
+            <div className="flex items-end gap-2 bg-dv-surface border border-slate-800 rounded-2xl px-3 sm:px-4 py-3 focus-within:border-slate-600 transition-colors">
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={isComplete ? 'Qualification complete — start a new enquiry' : 'Type your response…'}
+                placeholder={isComplete ? 'Qualification complete — use the button above to start again' : 'Type your response…'}
                 disabled={isLoading || isGenerating || isComplete}
                 rows={1}
-                className="flex-1 bg-transparent text-sm text-dv-text placeholder-slate-600 resize-none outline-none leading-relaxed disabled:opacity-40 max-h-32 overflow-y-auto"
+                className="flex-1 bg-transparent text-sm text-dv-text placeholder-slate-600 resize-none outline-none leading-relaxed disabled:opacity-40 max-h-28 overflow-y-auto"
                 style={{ scrollbarWidth: 'none' }}
               />
               <button
@@ -223,12 +217,13 @@ export default function ChatInterface() {
                 <Send size={14} className="text-dv-bg" />
               </button>
             </div>
-            <p className="text-xs text-slate-700 text-center mt-2 font-mono-dv">
+            <p className="text-xs text-slate-700 text-center mt-1.5 font-mono-dv">
               DataVita · Tier III · Scotland's AI Growth Zone
             </p>
           </div>
         </div>
 
+        {/* Brief panel — desktop */}
         {showBrief && brief && (
           <div className="hidden lg:flex flex-col w-[42%] border-l border-slate-800 bg-dv-surface/30 overflow-hidden">
             <BriefOutput
@@ -240,6 +235,7 @@ export default function ChatInterface() {
         )}
       </div>
 
+      {/* Brief panel — mobile full-screen overlay */}
       {showBrief && brief && (
         <div className="lg:hidden fixed inset-0 bg-dv-bg z-50 flex flex-col no-print">
           <BriefOutput
