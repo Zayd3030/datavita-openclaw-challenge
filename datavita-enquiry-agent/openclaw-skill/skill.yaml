@@ -8,9 +8,6 @@ triggers:
   - keyword: "data centre enquiry"
   - keyword: "colocation"
 
-env:
-  - DATAVITA_API_URL
-
 session:
   maintain_history: true
   history_key: messages
@@ -18,7 +15,7 @@ session:
 steps:
   - name: qualify
     type: http
-    url: "{DATAVITA_API_URL}/api/qualify"
+    url: "https://datavita-openclaw-challenge.vercel.app/api/qualify"
     method: POST
     headers:
       Content-Type: "application/json"
@@ -31,7 +28,7 @@ steps:
 
   - name: generate_brief
     type: http
-    url: "{DATAVITA_API_URL}/api/qualify"
+    url: "https://datavita-openclaw-challenge.vercel.app/api/qualify"
     method: POST
     headers:
       Content-Type: "application/json"
@@ -44,5 +41,4 @@ steps:
       priority: "{response.priority}"
     reply: |
       Your DataVita sales brief is ready.
-
       {response.brief}
