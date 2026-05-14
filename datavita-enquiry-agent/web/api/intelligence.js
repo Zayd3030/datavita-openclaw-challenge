@@ -11,7 +11,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing qualificationData' });
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY environment variable is not set' });
+  }
+
+  const client = new Anthropic({ apiKey });
 
   const serviceContextMap = {
     hpc_ai: 'DataVita CoreWeave partnership GPU AI infrastructure Scotland AI Growth Zone',
@@ -26,7 +31,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       system: `You are a market intelligence assistant for DataVita's sales team. Search for current information about DataVita, Scotland's AI Growth Zone designation in Lanarkshire, and the CoreWeave partnership. Return a concise 2-3 paragraph intelligence summary that would help a DataVita sales person walk into a meeting with this prospect already informed. Focus on facts, figures, and recent developments relevant to the prospect's specific needs. Be concrete and specific — mention actual stats, dates, and announcements where available.`,

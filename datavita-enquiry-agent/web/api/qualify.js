@@ -49,7 +49,12 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Session too long — please start a new enquiry' });
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY environment variable is not set' });
+  }
+
+  const client = new Anthropic({ apiKey });
 
   try {
     if (generateBrief && qualificationData) {
@@ -95,7 +100,7 @@ Priority: ${priority || 'Medium'}
 Fill in all bracketed sections with specific, relevant content based on the full conversation context and qualification data. Do not leave any brackets unfilled.`;
 
       const response = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 1500,
         system: BRIEF_SYSTEM_PROMPT,
         messages: [
@@ -113,7 +118,7 @@ Fill in all bracketed sections with specific, relevant content based on the full
       : messages;
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 800,
       system: SYSTEM_PROMPT,
       messages: conversationMessages,
