@@ -16,16 +16,16 @@ const STAGE_LABELS = {
 
 function getSuggestions(content) {
   const lower = content.toLowerCase()
-  if (lower.includes('workload') || lower.includes('running'))
+  if (lower.includes('workload') || lower.includes('running') || lower.includes('planning to host'))
     return ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
-  if (lower.includes('power') || lower.includes('kw'))
+  if (lower.includes('power') || lower.includes('kw') || lower.includes('kilowatt') || lower.includes('footprint'))
     return ['Under 10kW', '10-50kW', '50-100kW', '100kW+']
-  if (lower.includes('compliance') || lower.includes('regulatory'))
-    return ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'None Required']
-  if (lower.includes('location'))
-    return ['Glasgow City Centre', 'Lanarkshire', 'Flexible']
-  if (lower.includes('timeline') || lower.includes('budget'))
-    return ['3 months / Under £5k', '6 months / £5-15k', '12 months / £15k+', 'Flexible']
+  if (lower.includes('compliance') || lower.includes('regulatory') || lower.includes('iso') || lower.includes('g-cloud') || lower.includes('cyber essentials'))
+    return ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'OFFICIAL-SENSITIVE', 'None Required']
+  if (lower.includes('location') || lower.includes('facility') || lower.includes('glasgow') || lower.includes('lanarkshire'))
+    return ['Glasgow City Centre (DV2)', 'Lanarkshire (DV1)', 'Flexible']
+  if (lower.includes('timeline') || lower.includes('budget') || lower.includes('when') || lower.includes('monthly'))
+    return ['3 months / Under £5k', '6 months / £5–15k', '12 months+ / £15k+', 'Flexible Timeline']
   return []
 }
 
