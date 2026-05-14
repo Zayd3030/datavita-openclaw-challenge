@@ -1,15 +1,14 @@
-The chip detection priority is still wrong. The issue is acknowledgment lines contain location/kW keywords from the previous answer, overriding the actual question being asked.
+Create an OpenClaw skill that connects to the live Vercel API.
 
-Completely change the approach. Instead of keyword matching on the message text, track which question number the agent is on and show chips based on that:
+In openclaw-skill/skill.yaml, create a skill that:
+- Triggers when someone says "datavita enquiry" or "data centre enquiry" or "colocation"
+- Sends the user's messages to the Vercel API at /api/qualify
+- Returns the agent's responses back to the user in Telegram
+- Maintains conversation history across messages in the session
 
-- Question 1 (workload): show workload chips
-- Question 2 (power — only for HPC/AI): show kW chips  
-- Question 3 (compliance): show compliance chips
-- Question 4 (location): show location chips
-- Question 5 (timeline/budget): show timeline chips
+In openclaw-skill/prompts/qualify.md, write a simple instruction:
+"You are routing messages to the DataVita Enquiry Intelligence Agent. Forward all user messages to the qualification API and return responses verbatim."
 
-Track question number in the useQualification hook as a simple counter that increments each time the agent sends a message after the user has replied. Start at 1 after the first user message.
+The skill needs to pass the full conversation history as the messages array to POST /api/qualify, same format the web app uses.
 
-This is more reliable than keyword matching because it doesn't get confused by acknowledgment text that references previous answers.
-
-at the end give a bulletpoint sumamry before it generates the brief and when it is get rid of the typing animation and only keep the stay tuned animation
+Use the environment variable DATAVITA_API_URL for the Vercel base URL so it's configurable.
