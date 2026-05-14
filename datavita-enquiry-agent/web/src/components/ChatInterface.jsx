@@ -6,6 +6,21 @@ import BriefOutput from './BriefOutput.jsx'
 import { useQualification } from '../hooks/useQualification.js'
 import { QUALIFICATION_STAGES } from '../lib/agent.js'
 
+function getSuggestions(content) {
+  const lower = content.toLowerCase()
+  if (lower.includes('workload') || lower.includes('running'))
+    return ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
+  if (lower.includes('power') || lower.includes('kw'))
+    return ['Under 10kW', '10-50kW', '50-100kW', '100kW+']
+  if (lower.includes('compliance') || lower.includes('regulatory'))
+    return ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'None Required']
+  if (lower.includes('location'))
+    return ['Glasgow City Centre', 'Lanarkshire', 'Flexible']
+  if (lower.includes('timeline') || lower.includes('budget'))
+    return ['3 months / Under £5k', '6 months / £5-15k', '12 months / £15k+', 'Flexible']
+  return []
+}
+
 const STAGE_LABELS = {
   [QUALIFICATION_STAGES.GREETING]: 'Ready',
   [QUALIFICATION_STAGES.QUESTIONING]: 'Qualifying',
@@ -98,6 +113,15 @@ export default function ChatInterface() {
   const isGenerating = stage === QUALIFICATION_STAGES.GENERATING
   const isComplete = stage === QUALIFICATION_STAGES.COMPLETE
 
+  // Index of the last assistant message, but only if no user message has followed it
+  const lastAssistantIdx = timestampedMessages.reduce(
+    (last, msg, idx) => msg.role === 'assistant' ? idx : last, -1
+  )
+  const chipsIdx = lastAssistantIdx === timestampedMessages.length - 1 &&
+    !isLoading && !isGenerating && !isComplete
+    ? lastAssistantIdx
+    : -1
+
   return (
     <div className="flex flex-col h-screen bg-dv-bg overflow-hidden">
       <header className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800/80 bg-dv-surface/50 backdrop-blur-sm flex-shrink-0 no-print">
@@ -151,6 +175,8 @@ export default function ChatInterface() {
                 role={msg.role}
                 content={msg.content}
                 timestamp={msg.timestamp}
+                suggestions={idx === chipsIdx ? getSuggestions(msg.content) : undefined}
+                onSuggestionClick={sendMessage}
               />
             ))}
 

@@ -1,4 +1,4 @@
-export default function MessageBubble({ role, content, timestamp }) {
+export default function MessageBubble({ role, content, timestamp, suggestions, onSuggestionClick }) {
   const isAssistant = role === 'assistant'
   const time = timestamp
     ? new Date(timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -16,6 +16,19 @@ export default function MessageBubble({ role, content, timestamp }) {
               {content}
             </p>
           </div>
+          {suggestions?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2 ml-1">
+              {suggestions.map(chip => (
+                <button
+                  key={chip}
+                  onClick={() => onSuggestionClick(chip)}
+                  className="text-xs font-mono-dv text-dv-green border border-dv-green/40 bg-transparent hover:bg-dv-green/15 px-3 py-1.5 rounded-full transition-colors"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          )}
           {time && (
             <span className="text-xs text-slate-600 mt-1 ml-1 block">{time}</span>
           )}
