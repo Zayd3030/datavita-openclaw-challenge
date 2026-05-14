@@ -15,24 +15,26 @@ const STAGE_LABELS = {
 }
 
 function getSuggestions(content) {
-  // Only inspect the last non-empty paragraph so acknowledgements of
-  // previous answers don't bleed into the next question's chip set.
-  const lastParagraph = content
-    .split('\n\n')
-    .map(p => p.trim())
-    .filter(Boolean)
-    .at(-1) ?? content
-  const lower = lastParagraph.toLowerCase()
+  // Check the last 3 paragraphs — enough to catch the actual question while
+  // excluding older acknowledgement lines from a previous turn.
+  const paragraphs = content.split('\n\n').map(p => p.trim()).filter(Boolean)
+  const window = paragraphs.slice(-3).join(' ')
+  const lower = window.toLowerCase()
 
-  // Most-specific checks first so "power" beats "workload" when the agent
-  // asks about kW inside a message that also contains the word "workload".
-  if (lower.includes('kw') || lower.includes('kilowatt') || lower.includes('footprint') || lower.includes('power density') || lower.includes('per rack'))
+  // Most-specific checks first so power keywords beat "workload" when both
+  // appear in the same window.
+  if (lower.includes('kw') || lower.includes('kilowatt') || lower.includes('power requirements') ||
+      lower.includes('power footprint') || lower.includes('power density') ||
+      lower.includes('per rack') || lower.includes('footprint') || lower.includes('ballpark'))
     return ['Under 10kW', '10-50kW', '50-100kW', '100kW+']
-  if (lower.includes('compliance') || lower.includes('regulatory') || lower.includes('iso') || lower.includes('g-cloud') || lower.includes('cyber essentials') || lower.includes('official-sensitive'))
+  if (lower.includes('compliance') || lower.includes('regulatory') || lower.includes('iso') ||
+      lower.includes('g-cloud') || lower.includes('cyber essentials') || lower.includes('official-sensitive'))
     return ['ISO 27001', 'Cyber Essentials Plus', 'G-Cloud', 'OFFICIAL-SENSITIVE', 'None Required']
-  if (lower.includes('location') || lower.includes('facility') || lower.includes('bothwell') || lower.includes('lanarkshire') || lower.includes('dv1') || lower.includes('dv2'))
+  if (lower.includes('location') || lower.includes('facility') || lower.includes('bothwell') ||
+      lower.includes('lanarkshire') || lower.includes('dv1') || lower.includes('dv2'))
     return ['Glasgow City Centre (DV2)', 'Lanarkshire (DV1)', 'Flexible']
-  if (lower.includes('timeline') || lower.includes('budget') || lower.includes('monthly') || lower.includes('deployment date'))
+  if (lower.includes('timeline') || lower.includes('budget') || lower.includes('monthly') ||
+      lower.includes('deployment date'))
     return ['3 months / Under £5k', '6 months / £5–15k', '12 months+ / £15k+', 'Flexible Timeline']
   if (lower.includes('workload') || lower.includes('planning to run') || lower.includes('planning to host'))
     return ['AI/ML Training', 'Standard Enterprise', 'Government/Public Sector', 'Web/App Hosting']
@@ -169,7 +171,20 @@ export default function ChatInterface() {
               />
             ))}
 
-            {(isLoading || isGenerating) && <TypingIndicator />}
+            {isLoading && <TypingIndicator />}
+
+            {isGenerating && (
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-7 h-7 rounded-full bg-dv-green/20 border border-dv-green/40 flex items-center justify-center flex-shrink-0 mt-1">
+                  <span className="text-dv-green text-xs font-mono-dv font-bold">DV</span>
+                </div>
+                <div className="bg-dv-surface border-l-2 border-dv-green px-4 py-3 rounded-r-xl rounded-bl-xl">
+                  <p className="font-mono-dv text-sm text-dv-green animate-pulse">
+                    Creating your brief, stay tuned…
+                  </p>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="mx-auto my-2 max-w-md text-center text-xs font-mono-dv text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-4 py-3">
