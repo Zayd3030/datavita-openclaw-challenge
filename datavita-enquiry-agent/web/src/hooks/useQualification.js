@@ -4,34 +4,6 @@ import { fetchIntelligenceContext } from '../lib/intelligence.js'
 import { logEnquiry } from '../lib/supabase.js'
 import { getPriorityLevel } from '../lib/routing.js'
 
-const WORKLOAD_LABELS = {
-  hpc_ai: 'AI/ML Training (HPC/GPU)',
-  government: 'Government / Public Sector',
-  enterprise: 'Standard Enterprise',
-  web_app: 'Web / App Hosting',
-  greenfield: 'Greenfield / Design & Build',
-  other: 'Other',
-}
-
-const LOCATION_LABELS = {
-  glasgow_city: 'Glasgow City Centre (DV2)',
-  lanarkshire: 'Lanarkshire (DV1)',
-  flexible: 'Flexible',
-}
-
-function buildSummaryMessage(data) {
-  const lines = []
-  if (data.contact_name) lines.push(`**Contact:** ${data.contact_name}${data.email ? ` — ${data.email}` : ''}`)
-  if (data.company_name)  lines.push(`**Company:** ${data.company_name}`)
-  if (data.workload_type) lines.push(`**Workload:** ${WORKLOAD_LABELS[data.workload_type] || data.workload_type}`)
-  if (data.power_kw)      lines.push(`**Power:** ${data.power_kw}kW`)
-  if (data.compliance_needs?.length > 0) lines.push(`**Compliance:** ${data.compliance_needs.join(', ')}`)
-  if (data.location_pref) lines.push(`**Location:** ${LOCATION_LABELS[data.location_pref] || data.location_pref}`)
-  if (data.timeline)      lines.push(`**Timeline:** ${data.timeline}`)
-  if (data.budget_monthly) lines.push(`**Budget:** ${data.budget_monthly}`)
-
-  return `Here's a summary of what I've captured:\n\n${lines.map(l => `• ${l}`).join('\n')}\n\nPreparing your personalised DataVita sales brief now…`
-}
 
 export function useQualification() {
   const [messages, setMessages] = useState([])
@@ -87,17 +59,8 @@ export function useQualification() {
       setMessages(updatedMessages)
 
       if (isComplete) {
-        // Insert a bullet-point summary before triggering the generating state
-        // so the user sees what was captured while the brief loads.
-        const extracted = extractQualificationData(updatedMessages)
-        const summaryText = buildSummaryMessage(extracted)
-        const messagesWithSummary = [
-          ...updatedMessages,
-          { role: 'assistant', content: summaryText },
-        ]
-        setMessages(messagesWithSummary)
         setStage(QUALIFICATION_STAGES.GENERATING)
-        await generateBrief(messagesWithSummary)
+        await generateBrief(updatedMessages)
       }
     } catch (err) {
       setError(err.message)
