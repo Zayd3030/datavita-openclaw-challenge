@@ -1,5 +1,19 @@
 # DataVita Enquiry Intelligence Agent
 
+## Live Deployed Demo
+
+[https://datavita-openclaw-challenge.vercel.app](https://datavita-openclaw-challenge.vercel.app)
+
+---
+
+## Video Demo
+
+[https://www.loom.com/share/1596ab5eeca14f05a22ee0cf93861914](https://www.loom.com/share/1596ab5eeca14f05a22ee0cf93861914)
+
+---
+
+
+
 > An AI agent that qualifies inbound co-location enquiries, routes them to the right DataVita service, and enriches each brief with live intelligence about Scotland's AI infrastructure landscape — so your sales team walks into every conversation already informed.
 
 ---
@@ -37,11 +51,6 @@ The sales team receives a fully prepared brief. The prospect receives a seamless
 
 ---
 
-## Live Demo
-
-[https://datavita-openclaw-challenge.vercel.app](https://datavita-openclaw-challenge.vercel.app)
-
----
 
 ## Features
 
